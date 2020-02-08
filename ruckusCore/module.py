@@ -15,6 +15,9 @@ class Module(object):
         self.logic = app.game_engine.logic
         self.frontend = app.game_engine.frontend
         self.menu = app.menu
+        # self.max_h = self.frontend.winright_dims[0]-4
+        # self.max_w = self.frontend.winright_dims[1]-2
+        # depricated -->
         self.context = {
             "text_input": "",
              "text_output": "",
@@ -24,16 +27,19 @@ class Module(object):
         self.elements = []
         self.scroll = 0
         self.classID = 0
+        self.visible = True
         # last thing
         self.__setup__()
 
     def register_module(self):
-        self.app.menu.append((self.name, self.page, self.string_decider, self))
+        # DEPRICATING THIS!
+        # self.app.menu.append((self.name, self.page, self.string_decider, self))
+        self.app.menu.append(self)  # boom.
 
     def __setup__(self):
         # creates a variable to get at the hard to find stock templates
         TEMPLATE_PATH = pkg_resources.resource_filename(
-            'ruckusCore', 'templates')
+            'ruckusCore', 'mods/templates')
         self.templates_stock = Environment(loader=FileSystemLoader(
             TEMPLATE_PATH, followlinks=True))
         

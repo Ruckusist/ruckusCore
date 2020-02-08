@@ -197,7 +197,7 @@ class Window(object):
 
         for i in range(13):
             panel2.move(8, 8 + i)
-            curses.panel.update_panels()
+            # curses.panel.update_panels()
             self.screen.refresh()
             time.sleep(0.1)
 

@@ -1,0 +1,14 @@
+    MPU 6050
+    Scanning Status : {{ context.looping }}
+    Scantime : {{ '%0.2f' % context.scantime|float }} secs
+
+    Temp C: {{ '%0.2f' % context.MPU.tempC|float }} Temp F: {{ '%0.2f' % context.MPU.tempF|float }}
+
+    -Ax: {{ '%0.2f' % context.MPU.Ax|float }}  {# -AxCal: {{ '%0.2f' % context.MPU.AxCal|float }} #}
+    -Ay: {{ '%0.2f' % context.MPU.Ay|float }}  {# -AyCal: {{ '%0.2f' % context.MPU.AyCal|float }} #}
+    -Az: {{ '%0.2f' % context.MPU.Az|float }}  {# -AzCal: {{ '%0.2f' % context.MPU.AzCal|float }} #}
+
+    -Gx: {{ '%0.2f' % context.MPU.Gx|float }}  {# -GxCal: {{ '%0.2f' % context.MPU.GxCal|float }} #}
+    -Gy: {{ '%0.2f' % context.MPU.Gy|float }}  {# -GyCal: {{ '%0.2f' % context.MPU.GyCal|float }} #}
+    -Gz: {{ '%0.2f' % context.MPU.Az|float }}  {# -GzCal: {{ '%0.2f' % context.MPU.GzCal|float }} #}
+

@@ -15,12 +15,14 @@ class TUISink(object):
 
         # logging
         self.ERROR = lambda x: self.logger(x)  # registered D.B.A
+        # this needs a timeout for the header.
+        self.error_timeout = False
 
     def logger(self, message):
         """Logs messages to both the screen and to file.
         TODO: This needs more formatting, its worthwhile to spend the time here.!
         """
-        with open("logs/.log", 'a+') as f: f.write("\n"+f"[date] {str(message)}")
+        # with open("logs/.log", 'a+') as f: f.write("\n"+f"[date] {str(message)}")
         filler = self.frontend.screen_w-7 - len(str(message))
         self.frontend.header[0].addstr(1, 1, f"ERR: {str(message)}"[:self.frontend.screen_w-3]+" "*filler)
         self.app.log.append(str(message))
@@ -39,7 +41,7 @@ class TUISink(object):
 
     def main_loop(self):
         """This is the main loop. Framerate."""
-        self.logic.selector()
+        # self.logic.selector()
         try:
             while self.is_running:
                 start_loop = timer()  # loop_timer.

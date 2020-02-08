@@ -9,8 +9,8 @@ from .module import Module
 from .app import App
 
 # Modules
-from .about import About
+from .mods.about import About
 
-__version__ = '0.1.0'
+__version__ = '0.1.2'
 
 # print(f"Finished Loading ruckusCore Ver. {__version__}. https://ruckusist.com")

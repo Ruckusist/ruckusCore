@@ -1,0 +1,5 @@
+This panel size is W: {{context.w}} H: {{context.h}}
+Using Char Set of: {% for x in context.char %}{{ x }} {% endfor %}
+Fire Grid: {{ context.blen }}
+{% for x in context.gameboard %}{% for y in x %}{{y}}{% endfor %}
+{% endfor %}

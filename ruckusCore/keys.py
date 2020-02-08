@@ -7,3 +7,7 @@ class Keys:
     ENTER = 10
     SPACE = 32
     ESC   = 27
+    W     = 119
+    A     = 97
+    S     = 115
+    D     = 100

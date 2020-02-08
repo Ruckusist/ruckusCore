@@ -4,7 +4,7 @@ import sys
 
 def build_init_file():
     print("Setup ruckusCore Init.")
-    with open('.log', 'aw') as log:
+    with open('.log', 'w+') as log:
         if not os.path.exists(os.path.join(os.getcwd(), "archive")):
             log.write("Creating empty 'archive' folder.")
             os.mkdir(os.path.join(os.getcwd(), "archive"))
@@ -12,7 +12,7 @@ def build_init_file():
             log.write("Creating 'project' folder for source files.")
             os.mkdir(os.path.join(os.getcwd(), "project"))
         if not os.path.exists(os.path.join(os.getcwd(), "setup.py")):
-            with open('setup.py', 'aw') as File:
+            with open('setup.py', 'w+') as File:
                 File.write(
                     """
                     
@@ -33,7 +33,7 @@ def build_init_file():
                     """
                 )
         if not os.path.exists(os.path.join(os.getcwd(), "project", "cli.py")):
-            with open(os.path.join(os.getcwd(), "project", "cli.py"), 'aw') as File:
+            with open(os.path.join(os.getcwd(), "project", "cli.py"), 'w+') as File:
                 File.write(
                     """
                     import TESTPROJ
@@ -44,7 +44,7 @@ def build_init_file():
                     """
                 )
         if not os.path.exists(os.path.join(os.getcwd(), "project", "__init__.py")):
-            with open(os.path.join(os.getcwd(), "project", "__init__.py"), 'aw') as File:
+            with open(os.path.join(os.getcwd(), "project", "__init__.py"), 'w+') as File:
                 File.write(
                     """
                     from .main import *
@@ -53,7 +53,7 @@ def build_init_file():
                     """
                 )
         if not os.path.exists(os.path.join(os.getcwd(), "project", "main.py")):
-            with open(os.path.join(os.getcwd(), "project", "main.py"), 'aw') as File:
+            with open(os.path.join(os.getcwd(), "project", "main.py"), 'w+') as File:
                 File.write(
                     """
                     import ruckusCore
@@ -65,7 +65,7 @@ def build_init_file():
                     """
                 )
         if not os.path.exists(os.path.join(os.getcwd(), "project", "mod.py")):
-            with open(os.path.join(os.getcwd(), "project", "mod.py"), 'aw') as File:
+            with open(os.path.join(os.getcwd(), "project", "mod.py"), 'w+') as File:
                 File.write(
                     """
                     import ruckusCore
@@ -81,15 +81,15 @@ def build_init_file():
 def main():
     """Main Entry Point for ruckusCore CLi"""
     data = sys.argv
+    if len(data)>1:
+        if 'init' == data[1]:
+            build_init_file()
 
-    if 'init' == data[1]:
-        build_init_file()
+        elif '.' in data[1][-3:]:
+            print("This is probably a filename.")
 
-    elif '.' in data[1][-3:]:
-        print("This is probably a filename.")
-
-    else:
-        print("Raise: Not Implemented Error.")
+        else:
+            print("Raise: Not Implemented Error.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+  | Wifi Stuffs |
+    Scanning Status : {{ context.looping }}
+    Scantime : {{ '%0.2f' % context.scantime|float }} secs
+    Signal       $- SSiD -$            Quality
+  {% for x in context.wifilist %} {% if x.index == context.select %}|X|{% else %}| |{% endif %} {{x["signal"]}} dBm | {{'%20s' % x["ssid"]|string }} | {{x["encrpyted"]}} | {{x["quality"]}}
+  {% endfor %}
+  
