@@ -7,10 +7,9 @@ from .engine import TUISink
 from .callback import *
 from .module import Module
 from .app import App
+from .comms import Comms
+from .demons import Demon
 
-# Modules
-from .mods.about import About
-
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 # print(f"Finished Loading ruckusCore Ver. {__version__}. https://ruckusist.com")

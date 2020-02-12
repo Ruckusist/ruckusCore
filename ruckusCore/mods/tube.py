@@ -1,7 +1,7 @@
 import re, threading, random, os, pathlib
 import urllib.request
 import urllib.parse
-
+from lxml import etree
 import ruckusCore
 import youtube_dl
 
@@ -174,7 +174,8 @@ class Tube(ruckusCore.Module):
                 self.download()
                 # self.frontend.warning("Download:", f"{selected_item['title']}", self.download)
             finally:
-                self.logic.selector()
+                # self.logic.selector()
+                pass
             pass
         elif "Library" in element:
             target = self.tracklist[self.scroll]
@@ -194,32 +195,55 @@ class Tube(ruckusCore.Module):
     def search_youtube(self):
         """rudementary youtube search. Needs a better RE search this double lookup is dumb AF."""
         query_string = urllib.parse.urlencode({"search_query" : self.search_string})
-        url = f"http://www.youtube.com/results?{query_string}"
-        html_content = urllib.request.urlopen(url)
+        lurl = f"http://www.youtube.com/results?{query_string}"
+        html_content = urllib.request.urlopen(lurl)
         compiled_doc = html_content.read().decode()
-        search = lambda x: re.findall(r'href=\"\/watch\?v=(.{11})', x)
-        search_results = list(dict.fromkeys(search(compiled_doc)))
-        self.context['progress'] = 0
-        self.context['max_prog'] = len(search_results)
-        self.link_list = []  # reset results
-        for result in search_results:
-            self.context['progress'] += 1
-            link = f'https://www.youtube.com/watch?v={result}'
-            try:
-                with self.YTDL as ydl:
-                    x = ydl.extract_info(link, download=False)
-                    self.link_list.append(x)
-            except:
-                self.game_engine.ERROR("Youtube Failure.")
-                pass
-        self.search_content.append("Title        | Uploader    | Date   |  Description")
-        for details in self.link_list:
-            # max_desc_len = self.frontend.winright_dims[1] - 13 -13 - 8 - 10
-            self.search_content.append(
-                f"{details['title'][:13]:13s}|{details['uploader'][:13]:13s}|{details['upload_date']}| {str(details['description'])[:30]:{30}s}"
-                # f"{details['title'][:13]:13s}|{details['uploader'][:13]:13s}|{details['upload_date']}| {str(details['description'])[:max_desc_len]:{max_desc_len}s}"
-                # f"{details['webpage_url']}"
-            )
+        
+        dom = etree.HTML(compiled_doc)
+        sections = dom.xpath('//div[contains(@class, "yt-lockup-content")]')
+
+        # search_results = []
+        # for section in sections:
+        #     url = list(section.xpath('.//a[contains(@href, "/watch")]')[0]
+            # search_results.append( {
+            #     "url": url, # section.xpath('.//a[contains(@href, "/watch")]')[0],
+            #     "title": ''.join(url.itertext()),
+            #     "desc": list(section.xpath('./div[contains(@class, "yt-lockup-description")]')),
+            #     "meta": list(section.xpath('./div[contains(@class, "yt-lockup-meta")]')),
+            #     "uploader": list(section.xpath('.//a[contains(@href, "/user/")]'))
+            # } )
+        # search = lambda x: re.findall(r'href=\"\/watch\?v=(.{11})', x)
+        # search_results = list(dict.fromkeys(search(compiled_doc)))
+        # self.context['progress'] = 0
+        # self.context['max_prog'] = len(search_results)
+        # self.link_list = []  # reset results
+        # for result in search_results:
+        #     self.context['progress'] += 1
+        #     link = f'https://www.youtube.com/watch?v={result}'
+        #     try:
+        #         with self.YTDL as ydl:
+        #             x = ydl.extract_info(link, download=False)
+        #             self.link_list.append(x)
+        #     except:
+        #         self.game_engine.ERROR("Youtube Failure.")
+        #         pass
+        # self.search_content.append("Title        | Uploader    |  Description")
+
+        # for details in search_results:
+        #     self.search_content.append(
+        #         f"{details.get('title', 'None')[:13]:13s}|"+\
+        #         f"{details.get('uploader', 'None')[:13]:13s}"+\
+        #         f"{details.get('desc', 'None')}[:30]:{30}s"
+        #     )
+
+
+        # for details in self.link_list:
+        #     # max_desc_len = self.frontend.winright_dims[1] - 13 -13 - 8 - 10
+        #     self.search_content.append(
+        #         f"{details['title'][:13]:13s}|{details['uploader'][:13]:13s}|{details['upload_date']}| {str(details['description'])[:30]:{30}s}"
+        #         # f"{details['title'][:13]:13s}|{details['uploader'][:13]:13s}|{details['upload_date']}| {str(details['description'])[:max_desc_len]:{max_desc_len}s}"
+        #         # f"{details['webpage_url']}"
+        #     )
 
 
 if __name__ == "__main__":

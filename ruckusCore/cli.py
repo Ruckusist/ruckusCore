@@ -1,96 +1,43 @@
-import ruckusCore
+try:
+    from .comms import Comms
+except ImportError:
+    from comms import Comms
+try:
+    from .utils import protected
+except ImportError:
+    from utils import protected
 import os
 import sys
 
-def build_init_file():
-    print("Setup ruckusCore Init.")
-    with open('.log', 'w+') as log:
-        if not os.path.exists(os.path.join(os.getcwd(), "archive")):
-            log.write("Creating empty 'archive' folder.")
-            os.mkdir(os.path.join(os.getcwd(), "archive"))
-        if not os.path.exists(os.path.join(os.getcwd(), "project")):
-            log.write("Creating 'project' folder for source files.")
-            os.mkdir(os.path.join(os.getcwd(), "project"))
-        if not os.path.exists(os.path.join(os.getcwd(), "setup.py")):
-            with open('setup.py', 'w+') as File:
-                File.write(
-                    """
-                    
-                    from distutils.core import setup
-                    import setuptools
-                    import os
-
-                    setup(
-                        name              = 'TESTPROJ',
-                        version           = __version__,
-                        packages          = setuptools.find_packages(),
-                        entry_points      = {
-                            'console_scripts': [
-                                "TESTPROJ = project.cli:main"
-                            ]
-                        }
-                    )
-                    """
-                )
-        if not os.path.exists(os.path.join(os.getcwd(), "project", "cli.py")):
-            with open(os.path.join(os.getcwd(), "project", "cli.py"), 'w+') as File:
-                File.write(
-                    """
-                    import TESTPROJ
-
-                    def main():
-                        app = TESTPROJ.Main()
-                        app.run()
-                    """
-                )
-        if not os.path.exists(os.path.join(os.getcwd(), "project", "__init__.py")):
-            with open(os.path.join(os.getcwd(), "project", "__init__.py"), 'w+') as File:
-                File.write(
-                    """
-                    from .main import *
-
-                    __version__ = 0.0.1dev
-                    """
-                )
-        if not os.path.exists(os.path.join(os.getcwd(), "project", "main.py")):
-            with open(os.path.join(os.getcwd(), "project", "main.py"), 'w+') as File:
-                File.write(
-                    """
-                    import ruckusCore
-                    from .mod import Mod
-
-                    class Main(ruckusCore.App):
-                        def __init__(self):
-                            super().__init__(self)
-                    """
-                )
-        if not os.path.exists(os.path.join(os.getcwd(), "project", "mod.py")):
-            with open(os.path.join(os.getcwd(), "project", "mod.py"), 'w+') as File:
-                File.write(
-                    """
-                    import ruckusCore
-
-                    class Mod(ruckusCore.Module):
-                        def __init__(self):
-                            super().__init__(self)
-                    """
-                )
-        log.write("Starting New Project. Good Luck.")
-    return
+def get_request(data):
+    if data:
+        url = data.pop(0)
+        com = Comms()
+        com = protected(com)  # ?? not working.
+        try:
+            request = com(str(url))
+            if request:
+                print(request.text)
+        except Exception as e:
+            print(e)
+    else:
+        print("ruckuscore:get ==> requires 1 para: URL")
 
 def main():
     """Main Entry Point for ruckusCore CLi"""
     data = sys.argv
-    if len(data)>1:
-        if 'init' == data[1]:
-            build_init_file()
+    filename = data.pop(0)
+    if data:
+        command = data.pop(0)
 
-        elif '.' in data[1][-3:]:
-            print("This is probably a filename.")
+        if   command in ("get","--get"): 
+            get_request(data)
+
+        elif command in ("version","--version"):
+            print(f"RuckusCore version: {ruckusCore.__version__}")
 
         else:
-            print("Raise: Not Implemented Error.")
-
+            print(f"RuckusCore Doesnt Support that yet. ==>\n\t{', '.join([command, *data])}")
 
 if __name__ == "__main__":
     main()

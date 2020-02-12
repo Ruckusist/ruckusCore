@@ -25,7 +25,7 @@ def protected(func, logfile="", verbose=True):
     @functools.wraps(func)
     def p_func(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except Exception:
             exception = sys.exc_info()
             outer_err = inspect.stack()[-1]

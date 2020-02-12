@@ -1,11 +1,13 @@
 import os, sys, traceback, time
 from timeit import default_timer as timer
+from .demons import Demon
 
 class TUISink(object):
     def __init__(self, app):
         self.app = app
         # modules
         self.frontend = app.frontend
+        self.demon = Demon()
         # self.frontend.main_screen(self.app.name)
         self.logic = app.logic(self)
         self.CRASHED = False  # oh no!

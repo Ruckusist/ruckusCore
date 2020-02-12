@@ -10,12 +10,14 @@ class Comms(object):
         self.control_password = "test"
         # Tor uses the 9050 port as the default socks port
         self.session.proxies = {
-            'http':  'socks5://localhost:9050',
-            'https': 'socks5://localhost:9050'
+            'http':  'socks5://ruckusist.com:9050',
+            'https': 'socks5://ruckusist.com:9050'
         }
         self.test_url = "http://httpbin.org/ip"
         self.always_refresh = False
-        self.refresh_session()  # ALWAYS DO THIS ON INIT????? TODO: is this right?
+        
+        # THIS IS NOT WORKING REMOTLY!
+        # self.refresh_session()  # ALWAYS DO THIS ON INIT????? TODO: is this right?
 
     def refresh_session(self):
         with Controller.from_port(port = self.control_port) as controller:

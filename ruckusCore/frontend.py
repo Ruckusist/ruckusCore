@@ -31,7 +31,7 @@ class Window(object):
         self.screen = stdscr
         self.palette = []
         curses.start_color()
-        curses.use_default_colors()
+        # curses.use_default_colors()
         self.setup_color()
         curses.noecho()
         curses.cbreak()
@@ -86,10 +86,10 @@ class Window(object):
                 self.palette.append(curses.color_pair(i))
         except:
             print("failing to setup color!")
-            #for i in range(0, 7):
-            #    if i == 0: curses.init_pair(i+1, i, curses.COLOR_WHITE)
-            #    else: curses.init_pair(i+1, i, curses.COLOR_BLACK)
-            #    self.palette.append(curses.color_pair(i))
+            for i in range(0, 7):
+               if i == 0: curses.init_pair(i+1, i, curses.COLOR_WHITE)
+               else: curses.init_pair(i+1, i, curses.COLOR_BLACK)
+               self.palette.append(curses.color_pair(i))
             pass
         finally:
             # print(f"len(curses.COLORS) = {len(self.palette)}")
@@ -268,8 +268,8 @@ if __name__ == '__main__':
     app = Window()
     try:
         app.spash_screen()
-        #app.main_test()
-        #app.warning('Warning', 'confirm save?', app.end_safely)
+        app.main_test()
+        app.warning('Warning', 'confirm save?', app.end_safely)
         app.end_safely()
         #os.system('clear')
         print("Everything checks out. | Alphagriffin.com")

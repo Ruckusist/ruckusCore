@@ -11,7 +11,7 @@ from .engine import TUISink
 from .callback import callback, callbacks
 from .utils import protected, get_time, get_user
 from .comms import Comms
-# import ruckusCore
+
 
 class App(object):
     """This is the App Factory"""
@@ -34,7 +34,6 @@ class App(object):
         self.callbacks = callbacks
         self.make_paths()
         self.build()
-
 
     def make_paths(self):
         # generate paths if they dont exist.
@@ -86,11 +85,9 @@ class App(object):
             self.game_engine.logic.cur += 1
         else:
             self.game_engine.logic.cur = 0
-        self.game_engine.logic.selector()
     @callback(ID=1, keypress=339)  # pg_up
     def on_pg_up(self, *args, **kwargs):
         if self.game_engine.logic.cur > 0:
             self.game_engine.logic.cur -= 1
         else:
             self.game_engine.logic.cur = len(self.menu)-1
-        self.game_engine.logic.selector()
