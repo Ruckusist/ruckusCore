@@ -15,51 +15,11 @@ __status__ = "Beta"
 
 # generic
 import os, sys, time, datetime, collections, re, random
-import csv
-from tqdm import tqdm, trange
-from timeit import default_timer as timer
-import ccxt
-
 from itertools import cycle
 import numpy as np
 import pandas as pd
 
-# from utils import options
-from ag.options import Options
-# from utils import printer
-from ag.printing import Printer, Color
-
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-    MAGENTA = '\u001b[35m'
-    YELLOW = '\u001b[33m'
-    BRIGHT_YELLOW = '\u001b[33;1m'
-    BRIGHT_WHITE = '\u001b[37;1m'
-    BRIGHT_GREEN = '\u001b[32;1m'
-    CYAN = '\u001b[36m'
-    # CURSOR
-    # all cursor movements require a .format(num of places to move)
-    UP = '\u001b[{n}A'
-    DOWN = '\u001b[{n}B'
-    LEFT = '\u001b[{n}C'
-    RIGHT = '\u001b[{n}D'
-    ROW_UP = '\u001b[{n}F'
-    ROW_DOWN = '\u001b[{n}E'
-    CLEARSCREEN = '\u001b[{n}J'.format(n=2)
-    # shapes
-    SQUARE = '█'  # '\033[219m'
-    SQR = u'\u2588'
-
-class GrabData(object):
+class MakeData(object):
     """
     Bittensor.
     Another AlphaGriffin Project 2018.
@@ -69,227 +29,179 @@ class GrabData(object):
     def __init__(self, options=None):
         """Use the options for a proper setup."""
         self.options = options
-        self.filepath = os.path.join(os.getcwd(), 'data', 'exchanges', 'bittrex')
-        if not self.check_path_integrity(self.filepath):
-            sys.exit('Failure to build filesystem!')
-        self.filelist = os.listdir(self.filepath)
-        self.columns = ['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']
-        self.P = Printer(options)
-        self.P()
-        x = self.P('test', ret=True)
-        # print(x)
+        self._dir_loc = os.path.join(os.getcwd(), 'exchanges')
+        # self.file_loc = 'C:\\datasets\\files' # fucking windows
+        self.columns = ['timestamp','Open','High','Low','Close','Volume']
+        self.file_loc = ''
+        self._cur_exchange = ''
+        self._all_exchanges = []
+        self._all_pairs = []
+        self._dataframe = None
+        self._candleframe = None
+        self._pair = None
+        self.max_time_frame = 75
+        self._next_filename = None
+
+        self.all_exchanges = self._dir_loc
+        self.cur_exchange = self.all_exchanges[0]
+        self.next_filename = self.file_loc
 
     def main(self):
-        self.P('Starting Datagrabber.')
-        # exit()
-        runtime = timer()
-        # check current filesystem
-        # if not self.check_last_update():
-        self.P('starting historical update')
-        self.do_historical_update()
-        self.P('Finished Historical Update')
-        self.P('Current Runtime: {:.2f} mins'.format(float(timer()-runtime)/60))
+        sample = self.random_filename
+        print('{}'.format(self.pair))
+
+        self.dataframe = sample
+        print(self.dataframe.tail(2))
+
+        normal = self.make_normal(self.dataframe)
+        inputs = self.make_input_from_normal(normal)
+        for i in inputs:
+            print(i)
         return True
 
-    def write_csv_file(self, filename, data):
-        pass
+    @property
+    def cur_exchange(self):
+        return self._cur_exchange
 
-    def do_historical_update(self):
+    @cur_exchange.setter
+    def cur_exchange(self, value):
+        self._cur_exchange = value
+        ex_dir = os.path.join(self._dir_loc, value)
+        self.file_loc = ex_dir
+        self.all_pairs = ex_dir
+        self.total_coins = len(os.listdir(ex_dir))
+
+    @property
+    def pair(self):
+        return self._pair
+
+    @pair.setter
+    def pair(self, value):
+        # value = '{}_{}'.format(value.split('/')[0], value.split('/')[1])
+        value = value[:-4]  # remove .csv
+        self._pair = value
+
+    @property
+    def random_filename(self):
+        filename = os.listdir(self.file_loc)[random.randint(1, len(os.listdir(self.file_loc)))]
+        self.pair = filename
+        return filename
+
+    @property
+    def next_filename(self):
         try:
-            exchanges = list(self.options.exchanges.split(','))
-            FAILOUT = 0
-            exchanges_path = os.path.join(os.getcwd(), 'data', 'exchanges')
-            for exchange_name in exchanges:
-                exchange = eval('ccxt.{}()'.format(exchange_name))
-                eid = exchange.id
-                exchange_path = os.path.join(exchanges_path, eid)
-                self.P('Fetching Market Data @ {}'.format(eid))
-                MARKETS = exchange.fetchMarkets()
-                # continue
-                sizecounter = 0
-                self.P("There are {} Pairs @ {}".format(len(MARKETS), eid))
-                self.P()
-                with tqdm(
-                    total=len(MARKETS),
-                    unit=' pairs',
-                    unit_scale=False,
-                    leave=False,
-                ) as pbar:
-                    while sizecounter < len(MARKETS):
+            filename = next(self._next_filename)
+            self.pair = filename
+        except:
+            self._next_filename = iter(os.listdir(self.file_loc))
+            filename = None
+        return filename
 
-                        i = MARKETS[sizecounter]
-                        pair = i['symbol']
-                        coin, base = pair.split('/')
-                        filename = '{}_{}_{}.csv'.format(eid, coin, base)
-                        filepath = os.path.join(exchange_path, filename)
-                        printed_pair = filename[:-4][len(eid)+1:]
-                        pbar.set_postfix(file=printed_pair, refresh=False)
+    @next_filename.setter
+    def next_filename(self, value):
+        self._next_filename = iter(os.listdir(value))
 
-                        lasttimestamp = time.time() - 86400*60  # one year ago now...
-                        if os.path.exists(filepath):            # unless something already exists
-                            with open(filepath, 'r') as cur_file:
-                                reader = csv.reader(cur_file)
-                                full_csv = [ row for row in reader ]  # <-- What is Pythonic?
-                            try:
-                                lasttimestamp = int(int(full_csv[-1][0]) / 1000)
-                                ish = 86400 / time.time() + 1  # one day ago now...
-                                if lasttimestamp * ish >= time.time():
-                                    tqdm.write(str(self.P('{} up to date!'.format(pair), ret=True, color='green')))
-                                    time.sleep(.1)
-                                    sizecounter += 1
-                                    pbar.update(1)
-                                    continue
-                            except:  # Previously failed to write this file.
-                                os.remove(filepath)
-                                pass
+    @property
+    def candles(self):
+        return self._candleframe
 
-                        time_frame = '5m' if 'poloniex' in eid else '1m'
-                        write_time = timer()
-                        try:
-                            # tqdm.write(self.P('    ' + bcolors.BRIGHT_YELLOW + 'Downloading Historical Data {}'.format(pair) + bcolors.ENDC, ret=True))
-                            tqdm.write(self.P('Downloading Historical Data {}'.format(pair), ret=True, color='yellow'))
-                            # time.sleep(1.15)
-                            historicial_data = exchange.fetch_ohlcv(
-                                pair,
-                                timeframe=time_frame,
-                                since=lasttimestamp,
-                                limit=time.time()
-                            )
-                            # print(historicial_data)
-                        except:
-                            tqdm.write(str(self.P('Probably failed for a reason. Waiting 20 secs for retry. error {}/5'.format(
-                                FAILOUT+1
-                            ), ret=True, color='red')))
-                            time.sleep(20)
-                            if FAILOUT >= 4:
-                                sizecounter += 1
-                                pbar.update(1)
-                                tqdm.write(str(self.P('Bailing on Pair: {}'.format(pair), ret=True)))
-                                FAILOUT = 0
-                            else:
-                                FAILOUT += 1
-                            pass
+    @candles.setter
+    def candles(self, value):
+        # maybe this could take a tuple of (df, periods)
+        # but that doesnt sound intuitive.. ???
+        self._candleframe = self.make_candles(period=value)
+        self._candleframe.pair = self.pair
 
-                        check = True
-                        with open(filepath, 'a', newline='') as cur_file:
-                            # columns = ['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']
-                            writer = csv.DictWriter(cur_file, fieldnames=self.columns)
-                            for i in historicial_data:
-                                cur_line_time = i[0] / 1000
-                                check_time = datetime.datetime.fromtimestamp(
-                                    int(cur_line_time)
-                                ).strftime('%Y-%m-%d')  # %H:%M:%S')
-                                # IF TIME IS GREATER THAN WHAT WE ALREADY HAVE!
-                                if i[0] > int(lasttimestamp*1000):
-                                    if check:
-                                        check = False
-                                        tqdm.write(self.P('Updating Records starting with {}'.format(check_time), ret=True))
-                                    writer.writerow({
-                                        'timestamp': i[0],
-                                        'Open': i[1],
-                                        'High': i[2],
-                                        'Low': i[3],
-                                        'Close': i[4],
-                                        'Volume': i[5]
-                                    })
+    @property
+    def dataframe(self):
+        return self._dataframe
 
-                        # END SUCESSFULLY
-                        write_time = timer() - write_time
-                        sleeptime = 3 - write_time
-                        FAILOUT = 0
-                        sizecounter += 1
-                        pbar.update(1)
-
-                        tqdm.write(self.P('Took {:.2f} secs to write historical data for {} | {}'.format(
-                           write_time, eid, pair
-                        ), ret=True))
-                        if sleeptime > 0:
-                            tqdm.write(self.P('Sleeping for {:.2f} secs'.format(sleeptime), ret=True))
-                            time.sleep(sleeptime)
-        except KeyboardInterrupt:
-            print('try to fail safely!')
-            sys.exit(0)
-
-    def check_path_integrity(self, path):
-        if os.path.exists(path):
-            return True
-        else:
-            # check and make the first dir
-            if not os.path.exists(os.path.join(os.getcwd(), 'data')):
-                os.mkdir('data')
-            # make a general exchanges folder
-            if not os.path.exists(os.path.join(os.getcwd(), 'data', 'exchanges')):
-                os.mkdir(os.path.join(os.getcwd(), 'data', 'exchanges'))
-            # make exchanges folders
-            exchanges = list(self.options.exchanges.split(','))
-            for e in exchanges:
-                if not os.path.exists(os.path.join(os.getcwd(), 'data', 'exchanges', e)):
-                    os.mkdir(os.path.join(os.getcwd(), 'data', 'exchanges', e))
-        return True
-
-    def check_last_update(self):
-        filename = 'bittrex_BTC_USDT.csv'
-        path = os.path.join(self.filepath, filename)
-        if not os.path.exists(path):
-            return False
-        with open(path, 'r') as cur_file:
-            reader = csv.reader(cur_file)
-            full_csv = [row for row in reader]
-        lasttimestamp = int(int(full_csv[-1][0]) / 1000)
-        ish = 86400 / time.time() + 1
-        if lasttimestamp * ish >= time.time():
-            self.report('Files are up to date')
-            return 0
-        else:
-            self.report('Files need to be updated!')
-            return lasttimestamp
-
-    def write_files(self, ticker, loop_num):
-        columns = [
-            'timestamp', 'high', 'low',
-            'last', 'change', 'baseVolume'
-        ]
-        for pair in ticker:
-            _pair = '{}_{}'.format(pair.split('/')[0], pair.split('/')[1])
-            filename = 'bittrex_{}.csv'.format(_pair)
-            filepath = os.path.join(self.filepath, filename)
-            with open(filepath, 'a', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=columns)
-                writer.writerow({
-                    'timestamp': ticker[pair]['timestamp'],
-                    'high': ticker[pair]['high'],
-                    'low': ticker[pair]['low'],
-                    'last': ticker[pair]['last'],
-                    'change': ticker[pair]['change'],
-                    'baseVolume': ticker[pair]['baseVolume'],
-                })
-        return True
-
-    def report(self, data):
-        cur_time = datetime.datetime.now()
-        color_time = '[{color}{date:%B %d, %Y | %H:%M}{end}]'.format(
-            color=Color.OKBLUE,
-            date=cur_time,
-            end=Color.ENDC
+    @dataframe.setter
+    def dataframe(self, value):
+        self._dataframe = pd.read_csv(
+                os.path.join(self.file_loc, value),
+                names=self.columns
         )
-        color_msg = '{color}{message}{end}'.format(
-            color=Color.OKGREEN,
-            message=data,
-            end=Color.ENDC
-        )
-        print('{} {}'.format(color_time, color_msg))
+        self._dataframe = self.fix_time(self._dataframe)
+        self._dataframe.set_index(
+            pd.DatetimeIndex(
+                self._dataframe['timestamp']),
+            inplace=True)
+        self._dataframe.start_date = self._dataframe.index[0]
+        self._dataframe.end_date = self._dataframe.index[-1]
+        self._candleframe = self.make_candles(self.dataframe)
+        self._dataframe.pair = self._candleframe.pair = value[:-4]
 
+    @property
+    def all_pairs(self):
+        return self._all_pairs
+
+    @all_pairs.setter
+    def all_pairs(self, value):
+        self._all_pairs = [x for x in os.listdir(value)]
+
+    @property
+    def all_exchanges(self):
+        return self._all_exchanges
+
+    @all_exchanges.setter
+    def all_exchanges(self, value):
+        # list(os.listdir(value))
+        self._all_exchanges = [x for x in os.listdir(value)]
+
+    def fix_time(self, dataframe=None):
+        if dataframe is None:
+            dataframe = self.dataframe
+        time = dataframe.pop('timestamp')
+        transform = time.apply(lambda x:
+                                datetime.datetime.fromtimestamp(
+                                        x/1000
+                                    ).strftime('%Y-%m-%d %H:%M:%S'))
+        dataframe = dataframe.join(transform, how='inner')
+        return dataframe
+
+    def make_candles(self, df=None, column='Close', period='5T'):
+        '''Slice the data for any candle periods'''
+        if df is None:
+            df = self._dataframe
+        candles = pd.DataFrame()
+        candles['Open'] = df['Open'].resample(period).first().values
+        candles['High'] = df['High'].resample(period).max().values
+        candles['Low'] = df['Low'].resample(period).min().values
+        candles['Close'] = df['Close'].resample(period).last().values
+        candles['Volume'] = df['Volume'].resample(period).last().values
+        candles['timestamp'] = df['timestamp'].resample(period).last().values
+        """
+        try:
+            candles['timestamp'] = pd.DatetimeIndex(
+                # this is not working properly !!  #DUH! didnt resample.
+                df['timestamp'][:len(candles.index)].values
+                # df['timestamp'][:].values
+                )
+        except:
+            candles['timestamp'] = pd.DatetimeIndex(
+                # this is not working properly !!  #DUH! didnt resample.
+                df['timestamp'].values
+                )
+        """
+        candles.fillna(method='bfill')
+        candles.set_index('timestamp', inplace=True)
+
+        return candles
+
+
+class CoinData(object):
+    def __init__(self):
+        pass
 
 def main():
     """Loads Options ahead of the app"""
-    os.system('cls')
-    config = Options('config/access_codes.yaml')
-    app = GrabData(config)
+    config = options.Options('config/access_codes.yaml')
+    app = MakeData(config)
     try:
         app.main()
     except KeyboardInterrupt:
         pass
-
 
 if __name__ == '__main__':
     main()
