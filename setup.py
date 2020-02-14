@@ -28,7 +28,14 @@ if True:
         url = "https://github.com/Ruckusist/ruckusCore",
         version           = __version__,
         packages          = setuptools.find_packages(),
-        install_requires  = ['jinja2', 'youtube-dl', 'stem'],
+        
+        install_requires  = [
+            'jinja2',      # Used in page templating. --> TODO: make optional
+            'youtube-dl',  # Used in the the BoobTube Mod.  --> TODO: make optional
+            'stem',        # Used for Tor based Communication.  --> TODO: make optional
+            'psutil',      # Used for inter-process inspection. --> TODO: make optional
+	    'lxml',        # Used for web page parseing.  --> not optional.
+            ],
         package_data      = {'ruckusCore': get_package_data()},
         license           = open('LICENSE.txt').read(),
         long_description  = open('README.md').read(),
@@ -37,13 +44,11 @@ if True:
             'Development Status :: 3 - Alpha',
             'Intended Audience :: Developers',
             'Topic :: Software Development :: Framework',
-            # 'License :: OSI Approved :: MIT License',
-            # 'Programming Language :: Python :: 3',
-            # 'Programming Language :: Python :: 3.4',
-            # 'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
-            'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.8',  # development version.
             ],
         entry_points = {
             'console_scripts': [
