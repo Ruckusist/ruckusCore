@@ -17,11 +17,22 @@ class Demon(object):
     """
 
 
-    def __init__(self):
+    def __init__(self, engine):
+        self.game_engine = engine
         self.pid = os.getpid()
+        self.pid_file = self.game_engine.app.filesystem.pid_file
+        self.dataset = {
+            'is_app_running': True,
+            'current_pid': 0,
+            'running_app_pid': 0,
+            'app_id_status': 0,
+        }
 
     def start(self):
         """Fork--> Decouple--> Fork."""
+        if psutil.WINDOWS:
+            print("Cant Fork in windows. check.")
+            return False
         def Fork():
             try:
                 pid = os.fork()
@@ -54,7 +65,7 @@ class Demon(object):
 
     def inspect(self, pid=None):
         if not pid: pid = self.pid
-        process = psutil.Process(pid)
+        p = psutil.Process(pid)
         with p.oneshot():
             self.dataset = {
                 "name": p.name(),                # execute internal routine once collecting multiple info
@@ -64,7 +75,7 @@ class Demon(object):
                 "ppid": p.ppid(),                # return cached value
                 "status": p.status()             # return cached value
             }
-        return process
+        return p
         
 
 def main():

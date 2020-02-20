@@ -34,7 +34,7 @@ if True:
             'youtube-dl',  # Used in the the BoobTube Mod.  --> TODO: make optional
             'stem',        # Used for Tor based Communication.  --> TODO: make optional
             'psutil',      # Used for inter-process inspection. --> TODO: make optional
-	    'lxml',        # Used for web page parseing.  --> not optional.
+	        'lxml',        # Used for web page parseing.  --> not optional.
             ],
         package_data      = {'ruckusCore': get_package_data()},
         license           = open('LICENSE.txt').read(),

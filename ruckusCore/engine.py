@@ -1,6 +1,31 @@
+import asyncio
 import os, sys, traceback, time
 from timeit import default_timer as timer
 from .demons import Demon
+from .comms import Comms
+
+
+class Backend(object):
+    def __init__(self, app):
+        self.app = app
+        self.comms = Comms()
+        # logic is only used in the frontend.
+        self.logic = app.logic(self)
+        self.running = True
+        self.demon = Demon(self)
+
+    def start(self): pass
+
+    def stop(self): pass
+
+    def show(self): pass
+
+    def frontend_loop(self): pass
+
+    def frontend_stop(self): pass
+
+    def main_loop(self): pass
+
 
 class TUISink(object):
     def __init__(self, app):

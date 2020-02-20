@@ -9,6 +9,8 @@ from .module import Module
 from .app import App
 from .comms import Comms
 from .demons import Demon
+from .filesystem import Filesystem
+from .cli import *
 
 __version__ = '0.1.3'
 

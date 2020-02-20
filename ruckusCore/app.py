@@ -7,10 +7,11 @@ import os, pathlib
 from .mods.about import About
 from .frontend import Window
 from .logic import Logic
-from .engine import TUISink
+from .engine import TUISink, Backend
 from .callback import callback, callbacks
 from .utils import protected, get_time, get_user
 from .comms import Comms
+from .filesystem import Filesystem
 
 
 class App(object):
@@ -20,20 +21,25 @@ class App(object):
     # global callbacks
 
     def __init__(self, modules=[]):
+        self.filesystem = Filesystem()  # can take a dict of more options as input
+        self.protected = protected  # is this best?
+        self._menu = []
+        self.frontend = None
         self.modules = modules
         self.modules.append(About)
-        self._menu = []
-        self.log = []
-        self.protected = protected
-        self.splash_screen = False
-        self.game_engine = None  # im caught in an import loop...
+        self.logic = Logic  # self.game_engine.logic
+        self.game_engine = Backend(self)
+
+    def show_frontend(self):
+        self.splash_screen = False  # this should self.frontend.spashscreen = False
+        
         self.frontend = Window()
-        self.comms = Comms()
-        self.get_request = self.get = lambda x: self.comms(x)
-        self.logic = Logic
+        
+        # self.get_request = self.get = lambda x: self.comms(x) deprecated.
+        
         self.callbacks = callbacks
-        self.make_paths()
-        self.build()
+        # self.make_paths()
+        # self.build()
 
     def make_paths(self):
         # generate paths if they dont exist.
