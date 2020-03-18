@@ -12,6 +12,6 @@ from .demons import Demon
 from .filesystem import Filesystem
 from .cli import *
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 # print(f"Finished Loading ruckusCore Ver. {__version__}. https://ruckusist.com")

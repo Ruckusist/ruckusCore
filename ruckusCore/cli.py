@@ -43,7 +43,7 @@ def main():
         colored(f'{os.getcwd()}', 'cyan'),
         colored(f'\n$> ', 'red')
     ]
-    cli_msg = " | ".join(climsg)
+    cli_msg = colored(" | ", 'yellow').join(climsg)
     _ = data.pop(0)
     if data:
         command = data[0]
@@ -64,6 +64,11 @@ def main():
             print(f"RuckusCore Doesnt Support that yet. ==>\n\t{' '.join([*data])}")
     else:
         cprint(cli_msg)
+        try:
+            app = App()
+            app.run()
+        except:
+            print("couldnt start app... something...")
 
 if __name__ == "__main__":
     main()
