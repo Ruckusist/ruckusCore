@@ -24,17 +24,21 @@ if True:
     setup(
         name              = 'ruckusCore',
         author            = "Ruckusist",
-        author_email = "eric.alphagriffin@gmail.com",
-        url = "https://github.com/Ruckusist/ruckusCore",
+        author_email      = "eric.alphagriffin@gmail.com",
+        url               = "https://github.com/Ruckusist/ruckusCore",
         version           = __version__,
         packages          = setuptools.find_packages(),
-        
         install_requires  = [
             'jinja2',      # Used in page templating. --> TODO: make optional
             'youtube-dl',  # Used in the the BoobTube Mod.  --> TODO: make optional
             'stem',        # Used for Tor based Communication.  --> TODO: make optional
             'psutil',      # Used for inter-process inspection. --> TODO: make optional
 	        'lxml',        # Used for web page parseing.  --> not optional.
+            'termcolor',   # Used in command line
+            'requests',    # Used for communications
+            ## FOR DATAGRABBER
+            'pandas',      # Used for data structures
+            'numpy'        # ... math.
             ],
         package_data      = {'ruckusCore': get_package_data()},
         license           = open('LICENSE.txt').read(),
@@ -50,7 +54,7 @@ if True:
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',  # development version.
             ],
-        entry_points = {
+        entry_points      = {
             'console_scripts': [
                 "ruckusCore = ruckusCore.cli:main"
             ]

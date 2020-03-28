@@ -7,7 +7,7 @@ import getpass
 
 def get_user(): return f"{getpass.getuser()}@{socket.gethostname()}"
 
-def get_time(): return time.strftime('%b %d, %Y %l:%M%p')
+def get_time(): return time.strftime("%b %d, %Y|%I:%M%p", time.localtime())
 
 def error_handler(exception, outer_err, offender, logfile="", verbose=True):
     outer_off = ''.join([x.strip(' ').strip('\n') for x in outer_err[4]])
@@ -38,6 +38,17 @@ def protected(func, logfile="", verbose=True):
                 verbose
             )
     return p_func
+
+def is_prime(n):
+    """Picked up this func doing pushups on hackerrank."""
+    if n <= 3:
+        if n > 1: return True
+        else: return False
+    else:
+        if n % 2 == 0 or n % 3 == 0: return False
+    for i in range(5, floor(sqrt(n))):
+        if n % i == 0 or n % i + 2 == 0: return False
+    return True
 
 @protected
 def test(this=1, that="this", options={"those":2}):
