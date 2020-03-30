@@ -50,6 +50,23 @@ def is_prime(n):
         if n % i == 0 or n % i + 2 == 0: return False
     return True
 
+def isnotebook():
+    # https://stackoverflow.com/questions/15411967
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+#######################################################
+#  TESTS
+#######################################################
+
 @protected
 def test(this=1, that="this", options={"those":2}):
     list_ = [this]

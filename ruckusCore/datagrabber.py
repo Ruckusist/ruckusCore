@@ -20,21 +20,26 @@ from itertools import cycle
 from timeit import default_timer as timer
 import numpy as np
 import pandas as pd
-from tqdm import tqdm, trange
+
 from termcolor import colored, cprint
 from .filesystem import Filesystem
-from .utils import protected
+from .utils import protected, isnotebook
 import ccxt
 
 
+class Data(object):
+    def __init__(self):
+        self.filesystem = Filesystem()
+        self.columns = ['timestamp','Open','High','Low','Close','Volume']
 
-class Datasmith(object):
+
+class Datasmith(Data):
     """
     RuckusCore Datasmith.
     """
     def __init__(self):
-        self.filesystem = Filesystem()
-        self.columns = ['timestamp','Open','High','Low','Close','Volume']
+        super().__init__()
+        
         self.data_dir = ""
         self.setup()
 
@@ -47,7 +52,36 @@ class Datasmith(object):
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
         self.exchange = ccxt.coinbasepro()
-        self.markets = self.exchange.load_markets()
+        market_data_path = os.path.join(self.data_dir, "markets.txt")
+        if os.path.exists(market_data_path):
+            self.markets = []
+            with open(market_data_path, "r") as data:
+                counter = 0
+                while True:
+                    counter += 1
+                    if counter == 1:
+                        data.readline()
+                        continue
+                    d = data.readline()
+                    if d:
+                        self.markets.append(data.readline().strip('\n'))
+                    else:
+                        break
+        else:
+            self.markets = self.exchange.load_markets()
+            with open(market_data_path, "w") as data:
+                data.write(f"Market Data for coinbasepro march 2020\n")
+                for i in self.markets:
+                    data.write(f"{i}\n")
+            for k, v in self.markets.items():
+                base, coin = k.split('/')
+                pair = f"{base}_{coin}"
+                with open(os.path.join(self.data_dir, f"{pair}.txt"), "w") as data:
+                    data.write(f"Coin Data from coinbasepro march 2020\n")
+                    for a, b in v.items():
+                        if a == "info": continue
+                        data.write(f"{a:20s}: {b}\n")
+                # print(k, v)
 
     def open(self, filename):
         self._dataframe = pd.read_csv(
@@ -63,6 +97,10 @@ class Datasmith(object):
         self._dataframe.end_date = self._dataframe.index[-1]
 
     def get_historical_update(self):
+        if isnotebook():
+            from tqdm.notebook import trange, tqdm
+        else:
+            from tqdm import tqdm, trange
         with tqdm(
             total=len(self.markets),
             unit=' pairs',
@@ -75,21 +113,39 @@ class Datasmith(object):
                 filepath = os.path.join(self.data_dir, filename)
                 pbar.set_postfix(file=filename[:-4], refresh=False)
                 pbar.update(1)
+
                 # CHECK IF FILE EXISTS:
                 if os.path.exists(filepath):
-                    # IF EXISTS then CHECK IF NEEDS UPDATE:
-                    # ....
-                    continue
+                    start_read_time = timer()
+                    # check file for most recent timestamp 
+                    # print(filepath)   
+                    with open(filepath, 'r') as cur_file:
+                        reader = csv.reader(cur_file)
+                        full_csv = [ *reader ]
+                    if not full_csv: continue
+                    since = int(int(full_csv[-1][0]))
+                    lasttimestamp = int(int(full_csv[-1][0]) / 1000)
+                    t = datetime.datetime.fromtimestamp( lasttimestamp )
+                    if time.time() - lasttimestamp > 86400:
+                        tqdm.write(colored(f'{base_pair} NOT up to date... --> {t}', color='yellow'))
+                        since_str = t
+                    else:
+                        tqdm.write(colored(f'{base_pair} up to date! --> {t} - {lasttimestamp}', color='green'))
+                        continue
+                else:
+                    since_str = '2020-01-01T00:00:00Z'
 
                 # FINALLY JUST GET THE DATA!!
                 # try:
                 # [THIS IS THE FIRST RUN EVER .. EVER]
-                since_str = '2020-01-01T00:00:00Z'
+                    
                 timeframe = '1h'
                 tqdm.write(colored(f'Downloading Historical Data {base_pair} Since {since_str} in {timeframe} Candles', color='yellow'))
                 # Keep making calls to recover all the data.
                 now = self.exchange.milliseconds()
-                since = self.exchange.parse8601(since_str)                    
+                # since = self.exchange.parse8601(since_str)
+                #  print(now, since)
+                # continue
                 dataset = []
                 start_download_time = timer()
                 while since < now:
@@ -101,7 +157,7 @@ class Datasmith(object):
                     msg += f"Candles returned: {len(data)}"
                     since += len(data) * 60000 * 60
                     tqdm.write(msg)
-                    time.sleep(5)
+                    time.sleep(3)
                 total_download_time = timer() - start_download_time
                 tqdm.write(colored(f'Download time was {total_download_time:.2f} secs', color='cyan'))
                 # historicial_data = self.exchange.fetch_ohlcv(symbol, '1h')
@@ -302,9 +358,6 @@ class MakeData(object):
         return candles
 
 
-class CoinData(object):
-    def __init__(self):
-        pass
 
 def main():
     """Loads Options ahead of the app"""
