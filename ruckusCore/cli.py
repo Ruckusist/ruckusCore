@@ -1,10 +1,16 @@
 from .app import App
 from .comms import Comms
 from .utils import *
-from .__init__ import __version__
+# from .__init__ import __version__
 import os
 import sys
 from termcolor import colored, cprint
+import subprocess
+
+def command(command):
+    proc = subprocess.Popen(
+        command, shell=True, stdout=subprocess.PIPE).stdout
+    return proc.read().decode()
 
 def help():
     help_list = [

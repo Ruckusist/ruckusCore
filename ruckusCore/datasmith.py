@@ -28,44 +28,68 @@ import ccxt
 
 
 class Data(object):
-    def __init__(self):
+    def __init__(self, filename):
         self.filesystem = Filesystem()
         self.columns = ['timestamp','Open','High','Low','Close','Volume']
         self.data_dir = os.path.join(self.filesystem.app_dir, "data")
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
 
+        self.dataframe = self.dataframe(filename)
+        self.candles = self.make_candles(self.dataframe)
+
+    def __call__(self): return self.dataframe
+
     @staticmethod
     def fix_time(dataframe):
         time = dataframe.pop('timestamp')
-        transform = time.apply(lambda x:
-                                datetime.datetime.fromtimestamp(
-                                        x/1000
-                                    ).strftime('%Y-%m-%d %H:%M:%S'))
+        transform = time.apply(
+            lambda x: datetime.datetime.fromtimestamp(x/1000).strftime(
+                '%Y-%m-%d %H:%M:%S'))
         dataframe = dataframe.join(transform, how='inner')
         return dataframe
 
     @staticmethod
-    def dataframe(value):
+    def make_candles(df, column='Close', period='D'):
+        '''Slice the data for any candle periods'''
+        candles = pd.DataFrame()
+        candles['Open'] = df['Open'].resample(period).first().values
+        candles['High'] = df['High'].resample(period).max().values
+        candles['Low'] = df['Low'].resample(period).min().values
+        candles['Close'] = df['Close'].resample(period).last().values
+        candles['Volume'] = df['Volume'].resample(period).last().values
+        candles['timestamp'] = df['timestamp'].resample(period).last().values
+        candles.fillna(method='bfill')
+        candles.set_index('timestamp', inplace=True)
+        return candles
+
+    def dataframe(self, value):
+        pair = value
+        value = "_".join(value.split("/"))
+        value = value + ".csv"
+        print(value)
         dataframe = pd.read_csv(
-                os.path.join(self.file_loc, value),
-                names=self.columns
-        )
+            os.path.join(self.data_dir, value), names=self.columns)
+        # if not dataframe: return None  #  blank file error.
         dataframe = self.fix_time(dataframe)
-        dataframe.set_index(
-            pd.DatetimeIndex(self._dataframe['timestamp']),
+        dataframe.set_index(pd.DatetimeIndex(
+            dataframe['timestamp']),
             inplace=True)
-        dataframe.start_date = self._dataframe.index[0]
-        dataframe.end_date = self._dataframe.index[-1]
+        dataframe.start_date = dataframe.index[0]
+        dataframe.end_date = dataframe.index[-1]
         return dataframe
 
 
-class Datasmith(Data):
+class Datasmith(object):
     """
     RuckusCore Datasmith.
     """
     def __init__(self):
-        super().__init__()
+        self.filesystem = Filesystem()
+        self.columns = ['timestamp','Open','High','Low','Close','Volume']
+        self.data_dir = os.path.join(self.filesystem.app_dir, "data")
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
         self.setup()
 
     def __call__(self): return self.get_historical_update()
@@ -105,7 +129,7 @@ class Datasmith(Data):
                         data.write(f"{a:20s}: {b}\n")
                 # print(k, v)
 
-    def get_historical_update(self):
+    def get_historical_update(self, force=False):
         if isnotebook():
             from tqdm.notebook import trange, tqdm
         else:
@@ -143,6 +167,7 @@ class Datasmith(Data):
                         continue
                 else:
                     since_str = '2020-01-01T00:00:00Z'
+                    since = self.exchange.parse8601(since_str)
  
                 timeframe = '1h'
                 tqdm.write(colored(f'Downloading Historical Data {base_pair} Since {since_str} in {timeframe} Candles', color='yellow'))
@@ -164,7 +189,7 @@ class Datasmith(Data):
                 tqdm.write(colored(f'Download time was {total_download_time:.2f} secs', color='cyan'))
                 # historicial_data = self.exchange.fetch_ohlcv(symbol, '1h')
                 tqdm.write(colored(f'Writing Data to Disk', color='cyan'))
-                with open(filepath, 'w', newline='') as cur_file:
+                with open(filepath, 'w+', newline='') as cur_file:
                     writer = csv.DictWriter(cur_file, fieldnames=self.columns)
                     for entry in dataset:
                         writer.writerow({
@@ -183,175 +208,3 @@ class Datasmith(Data):
                 # break
                 tqdm.write(colored(f"Sleeping...", "cyan"))
                 time.sleep(4)
-
-
-class MakeData(object):
-    """
-    Bittensor.
-    Another AlphaGriffin Project 2018.
-    Alphagriffin.com
-    """
-
-    def __init__(self, options=None):
-        """Use the options for a proper setup."""
-        self.options = options
-        self._dir_loc = os.path.join(os.getcwd(), 'exchanges')
-        # self.file_loc = 'C:\\datasets\\files' # fucking windows
-        self.columns = ['timestamp','Open','High','Low','Close','Volume']
-        self.file_loc = ''
-        self._cur_exchange = ''
-        self._all_exchanges = []
-        self._all_pairs = []
-        self._dataframe = None
-        self._candleframe = None
-        self._pair = None
-        self.max_time_frame = 75
-        self._next_filename = None
-
-        self.all_exchanges = self._dir_loc
-        # self.cur_exchange = self.all_exchanges[0]
-        self.cur_exchange = None
-        self.next_filename = self.file_loc
-
-    def main(self):
-        sample = self.random_filename
-        print('{}'.format(self.pair))
-
-        self.dataframe = sample
-        print(self.dataframe.tail(2))
-
-        normal = self.make_normal(self.dataframe)
-        inputs = self.make_input_from_normal(normal)
-        for i in inputs:
-            print(i)
-        return True
-
-    @property
-    def cur_exchange(self):
-        return self._cur_exchange
-
-    @cur_exchange.setter
-    def cur_exchange(self, value):
-        self._cur_exchange = value
-        ex_dir = os.path.join(self._dir_loc, value)
-        self.file_loc = ex_dir
-        self.all_pairs = ex_dir
-        self.total_coins = len(os.listdir(ex_dir))
-
-    @property
-    def pair(self):
-        return self._pair
-
-    @pair.setter
-    def pair(self, value):
-        # value = '{}_{}'.format(value.split('/')[0], value.split('/')[1])
-        value = value[:-4]  # remove .csv
-        self._pair = value
-
-    @property
-    def random_filename(self):
-        filename = os.listdir(self.file_loc)[random.randint(1, len(os.listdir(self.file_loc)))]
-        self.pair = filename
-        return filename
-
-    @property
-    def next_filename(self):
-        try:
-            filename = next(self._next_filename)
-            self.pair = filename
-        except:
-            self._next_filename = iter(os.listdir(self.file_loc))
-            filename = None
-        return filename
-
-    @next_filename.setter
-    def next_filename(self, value):
-        self._next_filename = iter(os.listdir(value))
-
-    @property
-    def candles(self):
-        return self._candleframe
-
-    @candles.setter
-    def candles(self, value):
-        # maybe this could take a tuple of (df, periods)
-        # but that doesnt sound intuitive.. ???
-        self._candleframe = self.make_candles(period=value)
-        self._candleframe.pair = self.pair
-
-    @property
-    def dataframe(self):
-        return self._dataframe
-
-    @dataframe.setter
-    def dataframe(self, value):
-        self._dataframe = pd.read_csv(
-                os.path.join(self.file_loc, value),
-                names=self.columns
-        )
-        self._dataframe = self.fix_time(self._dataframe)
-        self._dataframe.set_index(
-            pd.DatetimeIndex(
-                self._dataframe['timestamp']),
-            inplace=True)
-        self._dataframe.start_date = self._dataframe.index[0]
-        self._dataframe.end_date = self._dataframe.index[-1]
-        self._candleframe = self.make_candles(self.dataframe)
-        self._dataframe.pair = self._candleframe.pair = value[:-4]
-
-    @property
-    def all_pairs(self):
-        return self._all_pairs
-
-    @all_pairs.setter
-    def all_pairs(self, value):
-        self._all_pairs = [x for x in os.listdir(value)]
-
-    @property
-    def all_exchanges(self):
-        return self._all_exchanges
-
-    @all_exchanges.setter
-    def all_exchanges(self, value):
-        # list(os.listdir(value))
-        try:
-            self._all_exchanges = [x for x in os.listdir(value)]
-        except:
-            self._all_exchanges = [None]
-
-    def fix_time(self, dataframe=None):
-        if dataframe is None:
-            dataframe = self.dataframe
-        time = dataframe.pop('timestamp')
-        transform = time.apply(lambda x:
-                                datetime.datetime.fromtimestamp(
-                                        x/1000
-                                    ).strftime('%Y-%m-%d %H:%M:%S'))
-        dataframe = dataframe.join(transform, how='inner')
-        return dataframe
-
-    def make_candles(df, column='Close', period='5T'):
-        '''Slice the data for any candle periods'''
-        candles = pd.DataFrame()
-        candles['Open'] = df['Open'].resample(period).first().values
-        candles['High'] = df['High'].resample(period).max().values
-        candles['Low'] = df['Low'].resample(period).min().values
-        candles['Close'] = df['Close'].resample(period).last().values
-        candles['Volume'] = df['Volume'].resample(period).last().values
-        candles['timestamp'] = df['timestamp'].resample(period).last().values
-        candles.fillna(method='bfill')
-        candles.set_index('timestamp', inplace=True)
-        return candles
-
-
-
-def main():
-    """Loads Options ahead of the app"""
-    # config = options.Options('config/access_codes.yaml')
-    app = Datasmith()
-    protected(app())
-
-if __name__ == '__main__':
-    main()
-    print('Thanks!')
-    print('BitTensor - AlphaGriffin | 2018')

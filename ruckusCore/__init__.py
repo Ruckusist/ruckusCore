@@ -10,7 +10,8 @@ from .app import App
 from .comms import Comms
 from .demons import Demon
 from .filesystem import Filesystem
-from .datagrabber import Datasmith
+from .datasmith import Datasmith, Data
+from .talib import TALib
 from .cli import *
 
 __version__ = '0.1.4'
