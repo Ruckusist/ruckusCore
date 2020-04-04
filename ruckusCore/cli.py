@@ -1,29 +1,16 @@
-from .app import App
-from .comms import Comms
-from .utils import *
-# from .__init__ import __version__
-import os
-import sys
+import sys, inspect, os, subprocess
+import asyncio
+from .utils import error_handler
 from termcolor import colored, cprint
-import subprocess
 
-def command(command):
-    proc = subprocess.Popen(
-        command, shell=True, stdout=subprocess.PIPE).stdout
-    return proc.read().decode()
+# THIS SHOULD NOT BE MANUAL
+# THIS CALLBACK SYSTEM SHOULD BE
+# BUILD BY THE CONTRIBUTING CLASS
+# THIS SHOULD JUST COMPILE THAT
 
-def help():
-    help_list = [
-        "| 'start' : summon the demon.",
-        "| 'stop'  : protection from evil.",
-        "| 'status': tell me what you know.",
-        "| 'show'  : display the frontend.",
-        "| 'version': display current version.",
-        "| 'get'   : do a Tor CURL.",
-        "| '??'    : NEXT THING."
-    ]
-    help_msg = str("\n".join(help_list))
-    return help_msg
+from .filesystem import Filesystem
+from .datasmith import Datasmith
+
 
 def get_request(data):
     url = data[1]
@@ -38,43 +25,90 @@ def get_request(data):
             print(e)
     else:
         print("ruckuscore:get ==> requires 1 para: URL")
+  
 
-def main():
-    """Main Entry Point for ruckusCore CLi"""
-    data = sys.argv
-    climsg = [
-        colored('ruckusCore', 'magenta'),
-        colored(f'V.{__version__}', 'blue'),
-        colored(f'{get_user()}', 'green'),
-        colored(f'{os.getcwd()}', 'cyan'),
-        colored(f'\n$> ', 'red')
-    ]
-    cli_msg = colored(" | ", 'yellow').join(climsg)
-    _ = data.pop(0)
-    if data:
-        command = data[0]
+class Command(object):
+    def __init__(self):
+        self.filesystem = Filesystem()
+        self.datasmith = Datasmith()
+        self.local_calls = {
+            "this": self.that,
+            "help": self.help,
+            "download": self.datasmith.get_historical_update
+        }
 
-        if   command in ("get","--get"): 
-            protected(get_request(data))
-
-        elif command in ("version","--version"):
-            print(f"RuckusCore version: {__version__}")
-
-        elif command in ("na", "blank", "--whatever"):
-            print("do stuff")
-
-        elif command in ("na", "blank", "--whatever"):
-            print("do stuff")
-
+        data = sys.argv
+        data.pop(0)
+        if data:
+            self.loop = asyncio.run(self.parse_command(data))
         else:
-            print(f"RuckusCore Doesnt Support that yet. ==>\n\t{' '.join([*data])}")
-    else:
-        cprint(cli_msg)
-        try:
-            app = App()
-            app.run()
-        except:
-            print("couldnt start app... something...")
+            self.loop = asyncio.run(self.main_loop())
+
+    async def help(self, *args):
+        """Show the help message."""
+        help_list = [
+            "| 'start'    : summon the demon.",
+            "| 'stop'     : protection from evil.",
+            "| 'status'   : tell me what you know.",
+            "| 'show'     : display the frontend.",
+            "| 'version'  : display current version.",
+            "| 'download' : refresh charts from coinbase.",
+            "| 'help'     : Shows this screen.",
+            "| '??'       : NEXT THING."
+        ]
+        help_msg = str("\n".join(help_list))
+        print( help_msg )
+
+    async def that(self, *args):
+        """Test function."""
+        print("this that")
+
+    async def system_call(self, cmd):
+        process = subprocess.Popen(
+            " ".join(cmd), 
+            stdin=subprocess.PIPE, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            cwd=os.getcwd(), 
+            universal_newlines=True, 
+            shell=True)
+        output = process.communicate()
+        stdout = output[0]
+        return stdout
+
+    async def parse_command(self, cmd):
+        root = cmd[0]
+        if root in tuple(list(self.local_calls)):
+            return await self.local_calls[root](cmd)
+        else:
+            return await self.system_call(cmd)
+
+    async def main_loop(self):
+        while True:
+            await asyncio.sleep(0.001)
+            try:
+                l1, l2 = (colored("[", "cyan"), colored("]", "cyan"))
+                l3 = colored(">", "green")
+                logo = colored("ruckusc0re", "yellow")
+                line = f"{l1}{logo}{l2}{l3}"
+                command = input(line)
+                if command:
+                    result = await self.parse_command(command.split())
+                    if result: print(result)
+            except KeyboardInterrupt: print(); break
+            except Exception:
+                exception = sys.exc_info()
+                outer_err = inspect.stack()[-1]
+                offender = inspect.trace()[-1]
+                error_handler(
+                    exception, 
+                    outer_err, 
+                    offender
+                )
+                pass
+
+
+def main(): Command()
 
 if __name__ == "__main__":
     main()

@@ -3,16 +3,16 @@ import sys, functools
 import threading, inspect
 import socket
 import getpass
+from termcolor import colored, cprint
 
+def get_user(): return colored(f"{getpass.getuser()}@{socket.gethostname()}", "cyan")
 
-def get_user(): return f"{getpass.getuser()}@{socket.gethostname()}"
-
-def get_time(): return time.strftime("%b %d, %Y|%I:%M%p", time.localtime())
+def get_time(): return colored(time.strftime("%b %d, %Y|%I:%M%p", time.localtime()), "yellow")
 
 def error_handler(exception, outer_err, offender, logfile="", verbose=True):
     outer_off = ''.join([x.strip(' ').strip('\n') for x in outer_err[4]])
     off = ''.join([x.strip(' ').strip('\n') for x in offender[4]])
-    print(f"╔══| Errors® |═[{get_time()}]═[{get_user()}]═[{os.getcwd()}]═══>>")
+    print(f"╔══| Errors® |═[{get_time()}]═[{get_user()}]═[{colored(os.getcwd(), 'green')}]═══>>")
     print(f"║ {outer_err[1]} :: {'__main__' if outer_err[3] == '<module>' else outer_err[3]}")
     print(f"║ \t{outer_err[2]}: {outer_off}  -->")
     print(f"║ ++ {offender[1]} :: Func: {offender[3]}()")
@@ -26,6 +26,14 @@ def protected(func, logfile="", verbose=True):
     def p_func(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except KeyboardInterrupt:
+            # this is a bad fix... i dont know WTF
+            # its been too long since i worked in this
+            # area. TODO the Exception should catch
+            # all the errors including keyboard, but
+            # doesnt. grrrrrrrr.
+            print("Keyboard Interrupt: Ending Safely.")
+            pass
         except Exception:
             exception = sys.exc_info()
             outer_err = inspect.stack()[-1]
@@ -37,6 +45,7 @@ def protected(func, logfile="", verbose=True):
                 logfile, 
                 verbose
             )
+            pass
     return p_func
 
 def is_prime(n):

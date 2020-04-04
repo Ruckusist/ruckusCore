@@ -1,8 +1,9 @@
-import asyncio
-import os, sys, traceback, time
+import asyncio, random
+import os, sys, traceback, time, inspect
 from timeit import default_timer as timer
 from .demons import Demon
 from .comms import Comms
+from .utils import error_handler
 
 
 class Backend(object):
@@ -14,17 +15,72 @@ class Backend(object):
         self.running = True
         self.demon = Demon(self)
 
-    def start(self): pass
+        # runtime
+        self.runtime = timer()
+        self.running = True
+        self.CRASHED = False
+
+        self.show_frontend = False
+
+        # logging
+        self.ERROR = lambda x: self.logger(x, "ERROR")
+
+    def logger(self, message, message_type):
+        """this should be done in the utils with the other error logging."""
+        #  TODO
+        print(f"[{message_type}] {message}")
+
+    def start(self):
+        try:
+            print("Starting main loop.")
+            asyncio.run(self.main_loop())
+        except KeyboardInterrupt:
+            # so it should never end this way.
+            print("Keyboard Interrupt: Ending Safely.")
+        except Exception:
+            exception = sys.exc_info()
+            outer_err = inspect.stack()[-1]
+            offender = inspect.trace()[-1]
+            error_handler(
+                exception, 
+                outer_err, 
+                offender
+            )
+        finally:
+            self.exit_program()
+        
 
     def stop(self): pass
 
     def show(self): pass
 
-    def frontend_loop(self): pass
+    async def frontend_loop(self): pass
 
     def frontend_stop(self): pass
 
-    def main_loop(self): pass
+    async def main_loop(self):
+        while self.running:
+            await asyncio.sleep(1.5)
+            try:
+                print("this is running.")
+                if random.random() > .5:
+                    print("random things happening")
+                    x = list(x for x in range(5))
+                    for i in range(6):
+                        y = x[i]
+            except Exception:
+                exception = sys.exc_info()
+                outer_err = inspect.stack()[-1]
+                offender = inspect.trace()[-1]
+                error_handler(
+                    exception, 
+                    outer_err, 
+                    offender
+                )
+
+    def exit_program(self):
+        self.logic.end_safely()
+        print("this is the last message.")
 
 
 class TUISink(object):
@@ -32,7 +88,7 @@ class TUISink(object):
         self.app = app
         # modules
         self.frontend = app.frontend
-        self.demon = Demon()
+        self.demon = Demon(self)
         # self.frontend.main_screen(self.app.name)
         self.logic = app.logic(self)
         self.CRASHED = False  # oh no!
@@ -61,6 +117,8 @@ class TUISink(object):
     def start(self):
         """This buffer is meant to transition to asyncio"""
         # self.loop.run_until_complete(self.main_loop())
+        print("got this far.!")
+        time.sleep(2)
         if self.app.splash_screen: self.frontend.spash_screen()
         self.frontend.main_screen(self.app.name)
         self.logic.setup_panels()
@@ -108,5 +166,3 @@ class TUISink(object):
             print(exc_type)
             print(exc_value)
             print("+"*60)
-            
-

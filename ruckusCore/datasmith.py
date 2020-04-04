@@ -163,7 +163,7 @@ class Datasmith(object):
                         tqdm.write(colored(f'{base_pair} NOT up to date... --> {t}', color='yellow'))
                         since_str = t
                     else:
-                        tqdm.write(colored(f'{base_pair} up to date! --> {t} - {lasttimestamp}', color='green'))
+                        tqdm.write(colored(f'{base_pair} up to date! | last: {t}', color='green'))
                         continue
                 else:
                     since_str = '2020-01-01T00:00:00Z'
@@ -176,7 +176,10 @@ class Datasmith(object):
                 dataset = []
                 start_download_time = timer()
                 while since < now:
-                    data = self.exchange.fetch_ohlcv(base_pair, timeframe, since)
+                    try:
+                        data = self.exchange.fetch_ohlcv(base_pair, timeframe, since)
+                    except:
+                        break
                     if not data: break
                     dataset.extend(tuple(data))
                     msg  = f"First candle: {self.exchange.iso8601(data[0][0])} "
@@ -189,22 +192,17 @@ class Datasmith(object):
                 tqdm.write(colored(f'Download time was {total_download_time:.2f} secs', color='cyan'))
                 # historicial_data = self.exchange.fetch_ohlcv(symbol, '1h')
                 tqdm.write(colored(f'Writing Data to Disk', color='cyan'))
-                with open(filepath, 'w+', newline='') as cur_file:
-                    writer = csv.DictWriter(cur_file, fieldnames=self.columns)
-                    for entry in dataset:
-                        writer.writerow({
-                            'timestamp': entry[0],
-                            'Open': entry[1],
-                            'High': entry[2],
-                            'Low': entry[3],
-                            'Close': entry[4],
-                            'Volume': entry[5]
-                        })
-                # except:
-                #    tqdm.write(f"FAILING to get coin: {base_pair} | SKIPPING")
-                #    pass
-
-                # NOW WE NEED TO WRAP UP, REPORT AND BE DONE.
-                # break
+                if dataset:
+                    with open(filepath, 'w+', newline='') as cur_file:
+                        writer = csv.DictWriter(cur_file, fieldnames=self.columns)
+                        for entry in dataset:
+                            writer.writerow({
+                                'timestamp': entry[0],
+                                'Open': entry[1],
+                                'High': entry[2],
+                                'Low': entry[3],
+                                'Close': entry[4],
+                                'Volume': entry[5]
+                            })
                 tqdm.write(colored(f"Sleeping...", "cyan"))
                 time.sleep(4)
