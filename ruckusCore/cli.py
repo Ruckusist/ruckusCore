@@ -45,10 +45,22 @@ class Command(object):
 
         data = sys.argv
         data.pop(0)
+        pyversion = sys.version
+        
+
         if data:
-            self.loop = asyncio.run(self.parse_command(data))
+            if not sys.version_info >= (3, 7):
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(self.parse_command(data))
+
+            else:
+                self.loop = asyncio.run(self.parse_command(data))
         else:
-            self.loop = asyncio.run(self.main_loop())
+            if not sys.version_info >= (3, 7):
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(self.main_loop())
+            else:
+                self.loop = asyncio.run(self.main_loop())
 
     async def help(self, *args):
         """Show this help message."""
