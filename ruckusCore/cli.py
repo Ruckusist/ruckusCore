@@ -37,6 +37,7 @@ class Command(object):
             "help": self.help,
 
             # DATA SMITH CALLS
+            "pair": self.datasmith.full_status,
             "markets": self.datasmith.list_markets,
             "download": self.datasmith.get_historical_update,
             "graph": self.datasmith.ascii_graph
@@ -50,19 +51,10 @@ class Command(object):
             self.loop = asyncio.run(self.main_loop())
 
     async def help(self, *args):
-        """Show the help message."""
-        help_list = [
-            "| 'start'    : summon the demon.",
-            "| 'stop'     : protection from evil.",
-            "| 'status'   : tell me what you know.",
-            "| 'show'     : display the frontend.",
-            "| 'version'  : display current version.",
-            "| 'download' : refresh charts from coinbase.",
-            "| 'help'     : Shows this screen.",
-            "| '??'       : NEXT THING."
-        ]
-        help_msg = str("\n".join(help_list))
-        print( help_msg )
+        """Show this help message."""
+        for k, v in self.local_calls.items():
+            print(f"{colored(k, 'green'):10s}: {colored(v.__doc__, 'red')}")
+        print(f"{colored('Visit: https://Ruckusist.com for more help', 'blue')}")
 
     async def that(self, *args):
         """Test function."""
@@ -97,10 +89,10 @@ class Command(object):
                 logo = colored("ruckusc0re", "yellow")
                 line = f"{l1}{logo}{l2}{l3}"
 
-                start_time = timer()
+                # start_time = timer()
                 command = None
-                while timer() <= start_time + 5:
-                    command = input(line)
+                # while timer() <= start_time + 5:
+                command = input(line)
                 # break
 
 

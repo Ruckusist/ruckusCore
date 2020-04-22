@@ -98,7 +98,6 @@ class Data(object):
         # padding = cfg['padding'] if 'padding' in cfg else '       '
         height = cfg['height'] if 'height' in cfg else interval
         ratio = height / interval
-        # print(minimum,ratio,type(minimum))
         min2 = floor(float(minimum) * ratio)
         max2 = ceil(float(maximum) * ratio)
 
@@ -107,7 +106,6 @@ class Data(object):
 
         rows = abs(intmax2 - intmin2)
         width = len(series) + offset
-        if verbose: print("rows/width: {}/{}".format(rows, width))
         # format = cfg['format'] if 'format' in cfg else lambda x: (padding + '{:.2f}'.format(x))[:-len(padding)]
 
         result = [[' '] * width for i in range(rows + 1)]
@@ -118,13 +116,12 @@ class Data(object):
             place_values = 2
             if value < 1:
                 place_values = 8
-            label = f'{value:.{place_values}f}'
+            label = colored(f'{value:.{place_values}f}', "cyan")
             result[y - intmin2][max(offset - len(label), 0)] = label
-            result[y - intmin2][offset - 1] = '┼' if y == 0 else '┤'
+            result[y - intmin2][offset - 1] = colored('┼', "green") if y == 0 else colored('┤', "yellow")
 
         y0 = int(series[0] * ratio - min2)
         result[rows - y0][offset - 1] = '┼'  # first value
-        if verbose: print("Results Type: {}".format(type(result)))
         for x in range(0, len(series) - 1):  # plot the line
             y0 = int(round(series[x + 0] * ratio) - intmin2)
             y1 = int(round(series[x + 1] * ratio) - intmin2)
@@ -143,7 +140,7 @@ class Data(object):
             return '\n'.join([''.join(row) for row in result])
         else:
             print('\n'.join([''.join(row) for row in result]))
-            await self.status()
+            # await self.status()
 
     async def status(self):
         """Rattle off a bunch of info about the pair."""
@@ -151,6 +148,7 @@ class Data(object):
         first = self.dataframe['timestamp'][0]
         last = self.dataframe['timestamp'][-1]
         print(f"TIMEFRAME: {first} ==> {last}")
+        await self.plot()
         print(f"MEAN ROC: {self.talib['ROC'].mean():.4f} | Current ROC: {self.talib['ROC'][-1]:.4f}")
         pass
 
@@ -210,6 +208,7 @@ class Datasmith(object):
                 # print(k, v)
 
     async def get_historical_update(self, *args):
+        """Download historical dataset of all pairs."""
         if isnotebook():
             from tqdm.notebook import trange, tqdm
         else:
@@ -288,6 +287,7 @@ class Datasmith(object):
                 time.sleep(4)
 
     async def list_markets(self, *args):
+        """list of all available market pairs."""
         print("\n".join( self.markets))
         print(f"Total: {len(self.markets)}")
 
@@ -305,14 +305,29 @@ class Datasmith(object):
         print(data.candles.tail(5))
         
     async def ascii_graph(self, *args):
+        """Graph of Close price over max time frame."""
         if args:
             pair = args[-1][-1]
         else:
             return False
-        if pair in tuple(self.markets):
-            print(f"Looking up {pair}")
+        if pair in tuple(self.markets): pass
+            # print(f"Looking up {pair}")
         else:
             print(f"pair {pair} not found.")
             return False
         data = Data(pair)
         await data.plot()
+
+    async def full_status(self, *args):
+        """full pair status: input: THIS/THAT."""
+        if args:
+            pair = args[-1][-1]
+        else:
+            return False
+        if pair in tuple(self.markets): pass
+            # print(f"Looking up {pair}")
+        else:
+            print(f"pair {pair} not found.")
+            return False
+        data = Data(pair)
+        await data.status()
