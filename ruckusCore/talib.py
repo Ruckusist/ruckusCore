@@ -33,7 +33,7 @@ class TALib(object):
         self.options = options
         self.available = {
             'Moving Average': self.MA,
-            'Bollinger Bands': self.BBANDS,
+            # 'Bollinger Bands': self.BBANDS,
             'Standard Deviation': self.STD,
             'Exp Moving Average': self.EMA,
             'Momentum': self.MOM,

@@ -1,5 +1,6 @@
 import sys, inspect, os, subprocess
 import asyncio
+from timeit import default_timer as timer
 from .utils import error_handler
 from termcolor import colored, cprint
 
@@ -32,9 +33,13 @@ class Command(object):
         self.filesystem = Filesystem()
         self.datasmith = Datasmith()
         self.local_calls = {
-            "this": self.that,
+            # GENERIC CALLS
             "help": self.help,
-            "download": self.datasmith.get_historical_update
+
+            # DATA SMITH CALLS
+            "markets": self.datasmith.list_markets,
+            "download": self.datasmith.get_historical_update,
+            "graph": self.datasmith.ascii_graph
         }
 
         data = sys.argv
@@ -91,7 +96,15 @@ class Command(object):
                 l3 = colored(">", "green")
                 logo = colored("ruckusc0re", "yellow")
                 line = f"{l1}{logo}{l2}{l3}"
-                command = input(line)
+
+                start_time = timer()
+                command = None
+                while timer() <= start_time + 5:
+                    command = input(line)
+                break
+
+
+
                 if command:
                     result = await self.parse_command(command.split())
                     if result: print(result)

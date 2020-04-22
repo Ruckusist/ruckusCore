@@ -1,0 +1,9 @@
+pandas
+numpy
+jinja2
+youtube-dl
+stem
+psutil
+lxml
+termcolor
+requests
