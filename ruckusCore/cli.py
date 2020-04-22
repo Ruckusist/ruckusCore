@@ -40,7 +40,9 @@ class Command(object):
             "pair": self.datasmith.full_status,
             "markets": self.datasmith.list_markets,
             "download": self.datasmith.get_historical_update,
-            "graph": self.datasmith.ascii_graph
+            "graph": self.datasmith.ascii_graph,
+            "purge": self.datasmith.purge_files,
+            "tops": self.datasmith.tops
         }
 
         data = sys.argv

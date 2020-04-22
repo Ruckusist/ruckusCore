@@ -14,7 +14,7 @@ __status__      = "Beta"
 """
 
 import os, sys, time, datetime, collections, re
-import random, pathlib
+import random, pathlib, shutil
 import csv
 from itertools import cycle
 from timeit import default_timer as timer
@@ -42,8 +42,9 @@ class Data(object):
         self.dataframe = self._dataframe(pair)
         self.candles = self.make_candles(self.dataframe)
         self.talib = sdict()
-        # await self.do_talib()
-        print(f"Finished Loading Pair: {pair}")
+        self.cur_change = 0
+        self.ytd_change = 0
+        # print(f"Finished Loading Pair: {pair}")
 
     def __call__(self): return self.dataframe
 
@@ -85,8 +86,9 @@ class Data(object):
         dataframe.end_date = dataframe.index[-1]
         return dataframe
 
-    async def plot(self):
-        cfg = {'height': 15}
+    async def plot(self, cfg={}):
+        max_h, max_w = shutil.get_terminal_size(fallback=(80, 13))
+        cfg['height'] = 15
         series = self.candles['Close']
         verbose = False
         minimum = min(series)
@@ -94,7 +96,7 @@ class Data(object):
         if verbose: print("Series min/max: {}/{}".format(minimum, maximum))
 
         interval = abs(float(maximum) - float(minimum))
-        offset = cfg['offset'] if 'offset' in cfg else 3
+        offset = cfg['offset'] if 'offset' in cfg else 5
         # padding = cfg['padding'] if 'padding' in cfg else '       '
         height = cfg['height'] if 'height' in cfg else interval
         ratio = height / interval
@@ -139,24 +141,41 @@ class Data(object):
         if False:
             return '\n'.join([''.join(row) for row in result])
         else:
-            print('\n'.join([''.join(row) for row in result]))
+            print('\n'.join([''.join(row) for row in result[-max_w-10:]]))
             # await self.status()
 
     async def status(self):
         """Rattle off a bunch of info about the pair."""
         await self.do_talib()
+        columns, rows = shutil.get_terminal_size(fallback=(80, 24))
         first = self.dataframe['timestamp'][0]
         last = self.dataframe['timestamp'][-1]
+        star = "*"*120
         print(f"TIMEFRAME: {first} ==> {last}")
+        print(colored(star, "blue"))
         await self.plot()
+        print(colored(star, "blue"))
         print(f"MEAN ROC: {self.talib['ROC'].mean():.4f} | Current ROC: {self.talib['ROC'][-1]:.4f}")
+        print(f"MEAN MOM: {self.talib['MOM'].mean():.4f} | Current MOM: {self.talib['MOM'][-1]:.4f}")
+        print(f"YTD Change: {self.ytd_change:.2f}% | Current Change {self.cur_change:.2f}%")
         pass
 
     async def do_talib(self):
         talib = TALib()
         self.talib['ROC'] = talib.ROC(self.dataframe)
-        # print(self.talib['ROC'].tail(5))
+        self.talib['MOM'] = talib.MOM(self.dataframe)
+        self.talib['RSI'] = talib.RSI(self.dataframe)
+        self.talib['ATR'] = talib.ATR(self.dataframe)
+        self.talib['CCI'] = talib.CCI(self.dataframe)
+        self.talib['MA'] = talib.MA(self.dataframe)
 
+        # do some other stats.
+        self.ytd_change = (self.dataframe['Close'][0]/self.dataframe['Close'][-1]-1)*100
+        self.cur_change = (self.dataframe['Close'][-7]/self.dataframe['Close'][-1]-1)*100
+
+    async def make_numpy(self):
+        """create input training data."""
+        pass
 
 class Datasmith(object):
     """
@@ -177,7 +196,8 @@ class Datasmith(object):
     def setup(self):
         self.exchange = ccxt.coinbasepro()
         market_data_path = os.path.join(self.data_dir, "markets.txt")
-        if os.path.exists(market_data_path):
+        if False:
+        # if os.path.exists(market_data_path):
             self.markets = []
             with open(market_data_path, "r") as data:
                 counter = 0
@@ -228,7 +248,7 @@ class Datasmith(object):
 
                 # CHECK IF FILE EXISTS:
                 if os.path.exists(filepath):
-                    start_read_time = timer()
+                    # start_read_time = timer()
                     # check file for most recent timestamp 
                     # print(filepath)   
                     with open(filepath, 'r') as cur_file:
@@ -266,7 +286,7 @@ class Datasmith(object):
                     msg += f"Candles returned: {len(data)}"
                     since += len(data) * 60000 * 60
                     tqdm.write(msg)
-                    time.sleep(3)
+                    time.sleep(2.001)
                 total_download_time = timer() - start_download_time
                 tqdm.write(colored(f'Download time was {total_download_time:.2f} secs', color='cyan'))
                 # historicial_data = self.exchange.fetch_ohlcv(symbol, '1h')
@@ -283,12 +303,19 @@ class Datasmith(object):
                                 'Close': entry[4],
                                 'Volume': entry[5]
                             })
-                tqdm.write(colored(f"Sleeping...", "cyan"))
-                time.sleep(4)
+                # tqdm.write(colored(f"Sleeping...", "cyan"))
+                # time.sleep(4)
+
+    async def purge_files(self, *args):
+        """delete all downloaded files."""
+        if os.path.exists(self.data_dir):
+            for filename in os.listdir(self.data_dir):
+                os.remove(os.path.join(self.data_dir, filename))
+        print(colored("all files purged.", "red"))
 
     async def list_markets(self, *args):
         """list of all available market pairs."""
-        print("\n".join( self.markets))
+        print("\n".join(sorted(self.markets)))
         print(f"Total: {len(self.markets)}")
 
     async def LOOKUP__DATA__FOR___FILENAME(self, *args):
@@ -331,3 +358,50 @@ class Datasmith(object):
             return False
         data = Data(pair)
         await data.status()
+
+    async def tops(self, *args):
+        """this is the goods right here."""
+        print("Calculating Tops for last 7 days.")
+        dataset = []
+        for pair in self.markets:
+            try:
+                d = Data(pair)
+                await d.do_talib()
+                dataset.append(d)
+            except: pass
+
+        # TOPS - ROC
+        new_set = []
+        for d in dataset:
+            new_set.append((d.talib['ROC'][-1], d.pair))
+        x = list(reversed(sorted(new_set, key=lambda x: x[0])))
+        print("top 5 Rate of Change Movers")
+        for i in x[:5]:
+            print(f"{i[1]:8s}: {i[0]:.4f}")
+        print("Bottom 5 Rate of Change Losers")
+        for i in x[-5:]:
+            print(f"{i[1]:8s}: {i[0]:.4f}")
+
+        # TOPS - CUR
+        new_set = []
+        for d in dataset:
+            new_set.append((d.cur_change, d.pair))
+        x = list(reversed(sorted(new_set, key=lambda x: x[0])))
+        print("top 5 Week Price Change Movers")
+        for i in x[:5]:
+            print(f"{i[1]:8s}: {i[0]:.4f}")
+        print("Bottom 5 Week Price Change Losers")
+        for i in x[-5:]:
+            print(f"{i[1]:8s}: {i[0]:.4f}")
+
+        # TOPS - YTD
+        new_set = []
+        for d in dataset:
+            new_set.append((d.ytd_change, d.pair))
+        x = list(reversed(sorted(new_set, key=lambda x: x[0])))
+        print("top 5 YTD Price Change Movers")
+        for index, element in enumerate(x[:5]):
+            print(f"# {index+1})\t{element[1]:8s}: {element[0]:.4f}")
+        print("Bottom 5 YTD Price Change Losers")
+        for index, element in enumerate(x[-5:]):
+            print(f"# {5-index})\t{element[1]:8s}: {element[0]:.4f}")
