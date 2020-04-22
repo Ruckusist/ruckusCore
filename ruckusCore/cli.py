@@ -1,7 +1,6 @@
 import sys, inspect, os, subprocess
 import asyncio
 from timeit import default_timer as timer
-from .utils import error_handler
 from termcolor import colored, cprint
 
 # THIS SHOULD NOT BE MANUAL
@@ -11,6 +10,7 @@ from termcolor import colored, cprint
 
 from .filesystem import Filesystem
 from .datasmith import Datasmith
+from .utils import error_handler
 
 
 def get_request(data):
@@ -101,7 +101,7 @@ class Command(object):
                 command = None
                 while timer() <= start_time + 5:
                     command = input(line)
-                break
+                # break
 
 
 
