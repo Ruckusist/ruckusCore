@@ -1,62 +1,34 @@
-import sys, inspect, os, subprocess
-import asyncio
+import sys, inspect, os, asyncio
 from timeit import default_timer as timer
+
+# add to requirements.txt
 from termcolor import colored, cprint
-
-# THIS SHOULD NOT BE MANUAL
-# THIS CALLBACK SYSTEM SHOULD BE
-# BUILD BY THE CONTRIBUTING CLASS
-# THIS SHOULD JUST COMPILE THAT
-
-from .filesystem import Filesystem
-from .datasmith import Datasmith
+import zmq
 from .utils import error_handler
 
 
-def get_request(data):
-    url = data[1]
-    if url:
-        com = Comms()
-        com = protected(com)  # ?? not working.
-        try:
-            request = com(str(url))
-            if request:
-                print(request.text)
-        except Exception as e:
-            print(e)
-    else:
-        print("ruckuscore:get ==> requires 1 para: URL")
-  
-
 class Command(object):
     def __init__(self):
-        self.filesystem = Filesystem()
-        self.datasmith = Datasmith()
-        self.local_calls = {
-            # GENERIC CALLS
-            "help": self.help,
-
-            # DATA SMITH CALLS
-            "pair": self.datasmith.full_status,
-            "markets": self.datasmith.list_markets,
-            "download": self.datasmith.get_historical_update,
-            "graph": self.datasmith.ascii_graph,
-            "purge": self.datasmith.purge_files,
-            "tops": self.datasmith.tops
-        }
-
+        l1, l2 = (colored("[", "cyan"), colored("]", "cyan"))
+        l3 = colored(">", "green")
+        p1 = colored(f"ruckusc", "yellow")
+        zero = colored("0", "blue")
+        p2 = colored(f"re", "yellow")
+        logo = f"{p1}{zero}{p2}"
+        self.line = f"{l1}{logo}{l2}{l3}"
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.REQ)
+        self.socket.connect("tcp://ruckus.local:42069")
         data = sys.argv
         data.pop(0)
-        pyversion = sys.version
-        
-
         if data:
+            data = " ".join(data)
             if not sys.version_info >= (3, 7):
                 loop = asyncio.get_event_loop()
-                loop.run_until_complete(self.parse_command(data))
+                loop.run_until_complete(self.single_pass(data))
 
             else:
-                self.loop = asyncio.run(self.parse_command(data))
+                self.loop = asyncio.run(self.single_pass(data))
         else:
             if not sys.version_info >= (3, 7):
                 loop = asyncio.get_event_loop()
@@ -64,56 +36,22 @@ class Command(object):
             else:
                 self.loop = asyncio.run(self.main_loop())
 
-    async def help(self, *args):
-        """Show this help message."""
-        for k, v in self.local_calls.items():
-            print(f"{colored(k, 'green'):10s}: {colored(v.__doc__, 'red')}")
-        print(f"{colored('Visit: https://Ruckusist.com for more help', 'blue')}")
+    async def send(self, message): self.socket.send(bytes(message.encode("utf8")))
 
-    async def that(self, *args):
-        """Test function."""
-        print("this that")
+    async def recieve(self): return self.socket.recv().decode('utf8')
 
-    async def system_call(self, cmd):
-        process = subprocess.Popen(
-            " ".join(cmd), 
-            stdin=subprocess.PIPE, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
-            cwd=os.getcwd(), 
-            universal_newlines=True, 
-            shell=True)
-        output = process.communicate()
-        stdout = output[0]
-        return stdout
-
-    async def parse_command(self, cmd):
-        root = cmd[0]
-        if root in tuple(list(self.local_calls)):
-            return await self.local_calls[root](cmd)
-        else:
-            return await self.system_call(cmd)
+    async def single_pass(self, data):
+        await self.send(str(data))
+        message = await self.recieve()
+        print(message)
 
     async def main_loop(self):
         while True:
             await asyncio.sleep(0.001)
             try:
-                l1, l2 = (colored("[", "cyan"), colored("]", "cyan"))
-                l3 = colored(">", "green")
-                logo = colored("ruckusc0re", "yellow")
-                line = f"{l1}{logo}{l2}{l3}"
-
-                # start_time = timer()
-                command = None
-                # while timer() <= start_time + 5:
-                command = input(line)
-                # break
-
-
-
-                if command:
-                    result = await self.parse_command(command.split())
-                    if result: print(result)
+                command = input(self.line)
+                if command: 
+                    await self.single_pass(command)
             except KeyboardInterrupt: print(); break
             except Exception:
                 exception = sys.exc_info()

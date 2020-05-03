@@ -54,6 +54,13 @@ class TALib(object):
         df.len = len(df)
         return df
 
+    def zeroless(self, df):
+        """Necessary for any df rolling calculation."""
+        df = df.replace('NaN', 0)
+        df = df.replace('nan', 0)
+        df = df.replace(0, 'NaN')
+        return df
+
     def MA(self, df, period=12, column='Close'):
         """BASIC MOVING AVERAGE"""
         MA = pd.Series(

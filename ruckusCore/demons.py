@@ -1,6 +1,6 @@
 import os, sys  # noqa: E401
 import psutil
-
+from .filesystem import Filesystem
 
 class Demon(object):
     """
@@ -17,10 +17,11 @@ class Demon(object):
     all the rest of the CLI arguements to the running PID.
     """
 
-    def __init__(self, engine):
-        self.game_engine = engine
+
+    def __init__(self, engine=None):
+        self.filesystem = Filesystem()
         self.pid = os.getpid()
-        self.pid_file = self.game_engine.app.filesystem.pid_file
+        self.pid_file = self.filesystem.pid_file
         self.dataset = {
             'is_app_running': True,
             'current_pid': 0,

@@ -1,14 +1,4 @@
-import ruckusCore
-from ruckusCore.mods import (
-    face,
-    tube
-)
+from ruckusCore.zero_server import Server
 
-
-
-app = ruckusCore.App([
-    tube.Tube,
-    face.Face
-])
-app.run()
-
+server = Server()
+server.start()

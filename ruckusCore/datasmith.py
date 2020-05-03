@@ -14,7 +14,7 @@ __status__      = "Beta"
 """
 
 import os, sys, time, datetime, collections, re
-import random, pathlib, shutil
+import random, pathlib, shutil, asyncio
 import csv
 from itertools import cycle
 from timeit import default_timer as timer
@@ -40,13 +40,19 @@ class Data(object):
             os.mkdir(self.data_dir)
         self.pair = pair
         self.dataframe = self._dataframe(pair)
+        self.build()
         self.candles = self.make_candles(self.dataframe)
+        # self.make_numpy()
         self.talib = sdict()
         self.cur_change = 0
         self.ytd_change = 0
         # print(f"Finished Loading Pair: {pair}")
 
     def __call__(self): return self.dataframe
+
+    def __str__(self): return self.pair
+
+    def __len__(self): return len(self.dataframe)
 
     @staticmethod
     def fix_time(dataframe):
@@ -72,7 +78,6 @@ class Data(object):
         return candles
 
     def _dataframe(self, value):
-        pair = value
         value = "_".join(value.split("/"))
         value = value + ".csv"
         dataframe = pd.read_csv(
@@ -160,12 +165,25 @@ class Data(object):
         print(f"YTD Change: {self.ytd_change:.2f}% | Current Change {self.cur_change:.2f}%")
         pass
 
+    def build(self):
+        talib = TALib()
+        self.dataframe['ROC'] = talib.ROC(self.dataframe)
+        self.columns.append('ROC')
+        self.dataframe['MOM'] = talib.MOM(self.dataframe)
+        self.columns.append('MOM')
+        # self.talib['RSI'] = talib.RSI(self.dataframe)
+        # self.talib['ATR'] = talib.ATR(self.dataframe)
+        self.dataframe['CCI'] = talib.CCI(self.dataframe)
+        self.columns.append('CCI')
+        self.dataframe['MA'] = talib.MA(self.dataframe)
+        self.columns.append('MA')
+
     async def do_talib(self):
         talib = TALib()
         self.talib['ROC'] = talib.ROC(self.dataframe)
         self.talib['MOM'] = talib.MOM(self.dataframe)
-        self.talib['RSI'] = talib.RSI(self.dataframe)
-        self.talib['ATR'] = talib.ATR(self.dataframe)
+        # self.talib['RSI'] = talib.RSI(self.dataframe)
+        # self.talib['ATR'] = talib.ATR(self.dataframe)
         self.talib['CCI'] = talib.CCI(self.dataframe)
         self.talib['MA'] = talib.MA(self.dataframe)
 
@@ -173,9 +191,28 @@ class Data(object):
         self.ytd_change = (self.dataframe['Close'][0]/self.dataframe['Close'][-1]-1)*100
         self.cur_change = (self.dataframe['Close'][-7]/self.dataframe['Close'][-1]-1)*100
 
-    async def make_numpy(self):
+    def make_numpy(self):
         """create input training data."""
-        pass
+        talib = TALib()
+        cols = [x for x in self.columns]
+        cols.pop('timestamp')
+        i_split = int(len(self.dataframe) * .75)
+        df = talib.unzero(self.dataframe)
+        self.matrix_train = df.get(cols).values[:i_split]
+        self.matrix_test = df.get(cols).values[i_split:]
+
+
+class Fully(object):
+    """
+    RuckusCore Datasmith.
+    """
+    def __init__(self):
+        self.filesystem = Filesystem()
+        self.columns = ['timestamp','Open','High','Low','Close','Volume']
+        self.data_dir = os.path.join(self.filesystem.app_dir, "data")
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
+
 
 class Datasmith(object):
     """
@@ -292,7 +329,7 @@ class Datasmith(object):
                 # historicial_data = self.exchange.fetch_ohlcv(symbol, '1h')
                 tqdm.write(colored(f'Writing Data to Disk', color='cyan'))
                 if dataset:
-                    with open(filepath, 'w+', newline='') as cur_file:
+                    with open(filepath, 'a+', newline='') as cur_file:
                         writer = csv.DictWriter(cur_file, fieldnames=self.columns)
                         for entry in dataset:
                             writer.writerow({
